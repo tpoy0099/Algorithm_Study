@@ -1,3 +1,5 @@
+#ifndef Algo_StringKMP_H
+#define Algo_StringKMP_H
 /*
 KMP
 基本思路是找出串内重复出现的模式,充分利用已匹配过的信息
@@ -27,17 +29,20 @@ Next生成这是一个循环迭代的过程
   如果Next[j] == -1, 表示回溯到了串头且串头也不等, i+=1 重新开始比较
 循环过程2 直到出现1 或者长度溢出
 
+Next预处理二段优化:
+如果存在T[0]~T[k] == T[i-k]~T[i]
+且T[k+1] == T[i+1]
+则Next[i+1] 直接回溯到 Next[k+1]
 
 朴素算法(双循环)的时间复杂度为O(m*n)
 KMP为O(m+n)
 
 疑问:
 O(m+n)如何证明?, NextK内循环其实是一个小于i随机数?
-其实KMP只在串的真前缀和真后缀存在大量一致的 子前缀==子后缀 时才高效?
-*/
 
-#ifndef Algo_StringKMP_H
-#define Algo_StringKMP_H
+
+2014.09.26 by Tpoy
+*/
 
 void ScanNextK(const char *T, int vNext[]) {
     int p = -1, s = 0; //prefix, suffix
@@ -47,13 +52,20 @@ void ScanNextK(const char *T, int vNext[]) {
     while (T[s]) {
         if (p == -1 || T[p] == T[s]) {
             ++p, ++s;
-            vNext[s] = p;
+            vNext[s] = T[p] == T[s] ? vNext[p] : p;
         }
         else
             p = vNext[p];
     }
 }
 
+/*
+FindFirstSubStr()
+找到Pattern位于Base内的第一个相等子串
+并返回相等子串首元素的下标
+如果异常或没有找到返回-1
+startpos表示从Base的哪个下标开始往后查找
+*/
 int FindFirstSubStr(const char *Base, const char *Pattern, unsigned int StartPos = 0) {
     unsigned int i, j, LenB, LenP;
     int EquIndex = -1;
@@ -71,8 +83,8 @@ int FindFirstSubStr(const char *Base, const char *Pattern, unsigned int StartPos
         int *vNext = new int[LenP + 1];
         ScanNextK(Pattern, vNext);
 
-        i = 0, j = 0;
-        while (i < LenB) {
+        i = StartPos, j = 0;
+        while (Base[i]) {
             if (j == -1 || Base[i] == Pattern[j]) {
                 ++i, ++j;
             }
@@ -81,8 +93,10 @@ int FindFirstSubStr(const char *Base, const char *Pattern, unsigned int StartPos
                 continue;
             }
 
-            if (j == LenP) 
+            if (j == LenP) {
                 EquIndex = i - LenP;
+                break;
+            }
         }
 
         delete[] vNext;
@@ -90,61 +104,5 @@ int FindFirstSubStr(const char *Base, const char *Pattern, unsigned int StartPos
 
     return EquIndex;
 }
-
-
-
-/*classical sample
-void get_nextval(const char *T, int next[]) {
-    int j = 0, k = -1;
-    next[0] = -1;
-    while (T[j] != '/0') {
-        if (k == -1 || T[j] == T[k]) {
-            ++j; ++k;
-            if (T[j] != T[k])
-                next[j] = k;
-            else
-                next[j] = next[k];
-        }// if
-        else
-            k = next[k];
-    }
-}
-
-int KMP(const char *Text, const char* Pattern)
-{
-    if (!Text || !Pattern || Pattern[0] == '/0' || Text[0] == '/0')
-        return -1;
-    
-    int len = 0;
-    const char * c = Pattern;
-    while (*c++ != '/0')
-        ++len;//字符串长度。
-    
-    int *next = new int[len + 1];
-    get_nextval(Pattern, next);//求Pattern的next函数值
-
-    int index = 0, i = 0, j = 0;
-    while (Text[i] != '/0' && Pattern[j] != '/0') {
-        if (Text[i] == Pattern[j]) {
-            ++i;// 继续比较后继字符
-            ++j;
-        }
-        else {
-            index += j - next[j];
-            if (next[j] != -1)
-                j = next[j];// 模式串向右移动
-            else {
-                j = 0;
-                ++i;
-            }
-        }
-    }
-
-    delete[] next;
-    if (Pattern[j] == '/0')
-        return index;// 匹配成功
-    else
-        return -1;
-}*/
 
 #endif
